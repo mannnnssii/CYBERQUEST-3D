@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CyberQuest 3D - Ultimate Tech & Logic Challenge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #070a13;
+      --card-bg: rgba(17, 24, 43, 0.78);
+      --card-border: rgba(255, 255, 255, 0.12);
+      --neon-cyan: #00f2fe;
+      --neon-blue: #3b82f6;
+      --neon-purple: #8b5cf6;
+      --neon-green: #10b981;
+      --neon-red: #ef4444;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      min-height: 100vh;
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.18) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.2) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(0, 242, 254, 0.08) 0px, transparent 60%);
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+      perspective: 1200px;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Background Dynamic Particle Canvas */
+    #particleCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* 3D Main Stage Container */
+    .stage-wrapper {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 680px;
+      margin: auto;
+      perspective: 1000px;
+    }
+
+    .card-3d {
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: 
+        0 25px 60px -15px rgba(0, 0, 0, 0.8),
+        0 0 35px rgba(0, 242, 254, 0.15),
+        inset 0 1px 1px rgba(255, 255, 255, 0.25);
+      padding: 34px 26px;
+      transform-style: preserve-3d;
+      transition: transform 0.15s ease-out, box-shadow 0.3s ease;
+    }
+
+    @media (max-width: 600px) {
+      .card-3d {
+        padding: 24px 18px;
+        border-radius: 22px;
+      }
+    }
+
+    /* Top HUD / Status Pills */
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    .pill-cyan { color: var(--neon-cyan); border-color: rgba(0, 242, 254, 0.35); }
+    .pill-fire { color: #fed7aa; border-color: #f97316; background: rgba(249, 115, 22, 0.16); }
+
+    /* Animated Countdown Bar */
+    .timer-track {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 24px;
+      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.6);
+    }
+
+    .timer-bar {
+      height: 100%;
+      width: 100%;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-blue), var(--neon-purple));
+      border-radius: 999px;
+      box-shadow: 0 0 12px var(--neon-cyan);
+      transition: width 1s linear;
+    }
+
+    /* Question Display */
+    .question-box {
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 18px;
+      padding: 22px;
+      margin-bottom: 22px;
+      transform: translateZ(25px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .question-box h2 {
+      font-size: 1.25rem;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    @media (max-width: 600px) {
+      .question-box h2 { font-size: 1.1rem; }
+    }
+
+    /* 3D Button Grid */
+    .options-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .option-btn {
+      width: 100%;
+      background: linear-gradient(145deg, #18233c, #0f172a);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+      padding: 14px 18px;
+      border-radius: 14px;
+      font-size: 1rem;
+      font-weight: 600;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transform: translateZ(15px);
+      transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.15s, background 0.2s, border-color 0.2s;
+      box-shadow: 0 5px 0 #080d1a, 0 8px 18px rgba(0, 0, 0, 0.4);
+    }
+
+    .option-btn:hover:not(:disabled) {
+      transform: translateY(-3px) translateZ(24px);
+      box-shadow: 0 8px 0 #080d1a, 0 12px 24px rgba(0, 242, 254, 0.25);
+      border-color: var(--neon-cyan);
+    }
+
+    .option-btn:active:not(:disabled) {
+      transform: translateY(3px) translateZ(5px);
+      box-shadow: 0 2px 0 #080d1a;
+    }
+
+    .option-btn .badge {
+      min-width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 0.9rem;
+    }
+
+    /* Correct & Wrong Answer Visual States */
+    .option-btn.correct {
+      background: linear-gradient(145deg, #059669, #047857) !important;
+      border-color: #34d399 !important;
+      box-shadow: 0 0 24px rgba(16, 185, 129, 0.7), 0 4px 0 #064e3b !important;
+      color: #fff !important;
+    }
+
+    .option-btn.wrong {
+      background: linear-gradient(145deg, #dc2626, #991b1b) !important;
+      border-color: #f87171 !important;
+      box-shadow: 0 0 24px rgba(239, 68, 68, 0.7), 0 4px 0 #7f1d1d !important;
+      color: #fff !important;
+    }
+
+    /* Explanation Accordion Card */
+    .explanation-card {
+      display: none;
+      margin-top: 20px;
+      padding: 16px 20px;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.9);
+      border-left: 4px solid var(--neon-cyan);
+      font-size: 0.92rem;
+      line-height: 1.45;
+      transform: translateZ(10px);
+      animation: slideUp 0.3s ease-out forwards;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Action Next / Submit Button */
+    .action-btn {
+      width: 100%;
+      margin-top: 22px;
+      padding: 15px;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-blue));
+      border: none;
+      border-radius: 14px;
+      color: #030712;
+      font-size: 1.05rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 6px 0 #1d4ed8, 0 10px 24px rgba(59, 130, 246, 0.4);
+      transform: translateZ(20px);
+      transition: all 0.15s ease;
+      display: none;
+    }
+
+    .action-btn:hover {
+      transform: translateY(-2px) translateZ(25px);
+      box-shadow: 0 8px 0 #1d4ed8, 0 14px 28px rgba(0, 242, 254, 0.4);
+    }
+
+    .action-btn:active {
+      transform: translateY(4px) translateZ(8px);
+      box-shadow: 0 2px 0 #1d4ed8;
+    }
+
+    /* Input Fields for Start Form */
+    .start-hero h1 {
+      font-size: 2.1rem;
+      font-weight: 900;
+      background: linear-gradient(90deg, #ffffff, var(--neon-cyan));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 14px 18px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      color: #fff;
+      font-size: 1rem;
+      margin-bottom: 14px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-field:focus {
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+    }
+
+    /* Results Dashboard Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin: 24px 0;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 16px;
+      border-radius: 14px;
+      text-align: center;
+    }
+
+    .stat-card h4 {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .stat-card p {
+      font-size: 1.6rem;
+      font-weight: 900;
+      color: var(--neon-cyan);
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="particleCanvas"></canvas>
+
+<div class="stage-wrapper">
+  <div class="card-3d" id="card3D">
+
+    <!-- SCREEN 1: WELCOME & REGISTRATION -->
+    <div id="startScreen" class="start-hero">
+      <h1>CYBERQUEST 3D</h1>
+      <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 0.95rem;">
+        Test your smart tech, logic & digital awareness in 10 fast rounds. Beat the clock and hold your streak for max score multipliers!
+      </p>
+
+      <input type="text" id="playerName" class="input-field" placeholder="Full Name / Team Name *" required>
+      <input type="email" id="playerEmail" class="input-field" placeholder="Your Email Address *" required>
+
+      <button class="action-btn" style="display: block;" onclick="startChallenge()">Start Challenge ⚡</button>
+    </div>
+
+    <!-- SCREEN 2: ACTIVE QUIZ PLAY -->
+    <div id="quizScreen" style="display: none;">
+      <div class="hud">
+        <div class="pill pill-cyan">QUESTION <span id="qIndex">1</span>/10</div>
+        <div class="pill pill-fire" id="streakBadge">🔥 STREAK: 0</div>
+        <div class="pill" id="scoreBadge">SCORE: 0</div>
+      </div>
+
+      <div class="timer-track">
+        <div class="timer-bar" id="timerBar"></div>
+      </div>
+
+      <div class="question-box">
+        <h2 id="questionPrompt">Loading question...</h2>
+      </div>
+
+      <div class="options-grid" id="optionsBox"></div>
+
+      <div class="explanation-card" id="explanationBox"></div>
+      <button class="action-btn" id="nextBtn" onclick="nextQuestion()">Next Round ➔</button>
+    </div>
+
+    <!-- SCREEN 3: RESULTS & CLOUD SYNC -->
+    <div id="resultsScreen" style="display: none; text-align: center;">
+      <h1 style="font-size: 2rem; font-weight: 900; margin-bottom: 8px;">CHALLENGE COMPLETE!</h1>
+      <p style="color: var(--text-muted);">Here is your performance report:</p>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h4>Final Score</h4>
+          <p id="resScore">0</p>
+        </div>
+        <div class="stat-card">
+          <h4>Accuracy</h4>
+          <p id="resAccuracy">0%</p>
+        </div>
+        <div class="stat-card">
+          <h4>Highest Streak</h4>
+          <p id="resStreak">0</p>
+        </div>
+        <div class="stat-card">
+          <h4>Cloud Sync</h4>
+          <p id="resSync" style="font-size: 1rem; color: #34d399;">Syncing...</p>
+        </div>
+      </div>
+
+      <button class="action-btn" style="display: block;" onclick="location.reload()">Take Again 🔄</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // 10 Best and Accessible Questions (Tech, Logic, AI & Everyday Computing)
+  const quizData = [
+    {
+      q: "What does 'WWW' stand for in website addresses?",
+      options: ["World Wide Web", "World Wide Wonder", "Web Wide World", "Wide World Wave"],
+      correct: 0,
+      expl: "WWW stands for World Wide Web, the global network of websites created by Sir Tim Berners-Lee."
+    },
+    {
+      q: "Which hardware component acts as the 'brain' of a computer?",
+      options: ["Hard Drive", "CPU (Central Processing Unit)", "Power Supply", "RAM"],
+      correct: 1,
+      expl: "The CPU executes calculations, logical decisions, and directs all major computer hardware operations."
+    },
+    {
+      q: "In AI & PictoBlox Object Detection, what is a 'Bounding Box'?",
+      options: [
+        "A box showing the camera frame boundary",
+        "A rectangle highlighting the detected object and its coordinates",
+        "A 3D cube used to measure file size",
+        "An error dialog when a camera disconnects"
+      ],
+      correct: 1,
+      expl: "A bounding box visualizes where the AI detects an object (with x, y coordinates, height, and width)."
+    },
+    {
+      q: "What are the three primary additive colors of light used by phone and TV screens?",
+      options: ["Red, Yellow, Blue", "Cyan, Magenta, Yellow", "Red, Green, Blue (RGB)", "Black, White, Gray"],
+      correct: 2,
+      expl: "Screens use RGB (Red, Green, Blue) light pixels to combine and generate all visible colors."
+    },
+    {
+      q: "What does the 'S' stand for in 'HTTPS' at the beginning of a secure website URL?",
+      options: ["System", "Secure", "Server", "Speed"],
+      correct: 1,
+      expl: "The 'S' stands for Secure (meaning communication between your browser and the website is encrypted with SSL/TLS)."
+    },
+    {
+      q: "Which smartphone sensor detects when you rotate your phone sideways to watch a video?",
+      options: ["Barometer", "Gyroscope / Accelerometer", "Infrared Sensor", "Microphone"],
+      correct: 1,
+      expl: "The accelerometer and gyroscope measure acceleration and tilt angles to automatically rotate your display."
+    },
+    {
+      q: "If 5 automated robots take 5 minutes to package 5 boxes, how many minutes will 100 robots take to package 100 boxes?",
+      options: ["100 minutes", "20 minutes", "5 minutes", "1 minute"],
+      correct: 2,
+      expl: "Each robot takes 5 minutes to package 1 box simultaneously. So 100 robots working together package 100 boxes in 5 minutes!"
+    },
+    {
+      q: "What type of computer memory is volatile (clears completely when you turn off the power)?",
+      options: ["RAM (Random Access Memory)", "ROM", "SSD Storage", "USB Flash Drive"],
+      correct: 0,
+      expl: "RAM holds active applications temporarily for fast access; it requires electrical power to retain information."
+    },
+    {
+      q: "In coding and robotics, what do we call a command block that repeats instructions continuously?",
+      options: ["Variable", "Loop", "Function", "Array"],
+      correct: 1,
+      expl: "A loop (such as 'forever' or 'for/while') repeats instructions multiple times until a condition stops it."
+    },
+    {
+      q: "Which vision technique allows self-driving cars to differentiate a red stop sign from a green traffic light?",
+      options: ["Audio frequency analysis", "Color filtering and shape detection", "Battery temperature checks", "Wi-Fi signal strength"],
+      correct: 1,
+      expl: "Autonomous vehicles use computer vision models to identify geometry (octagon) and color pigments (red) in real time."
+    }
+  ];
+
+  // Game Engine State
+  let currentIdx = 0;
+  let score = 0;
+  let streak = 0;
+  let maxStreak = 0;
+  let correctCount = 0;
+  let timeLeft = 15;
+  let timerInterval = null;
+  let answerLogs = [];
+  let studentData = { name: "", email: "" };
+
+  const FORMSPREE_ENDPOINT = "https://formspree.io/f/xvkgkwzd";
+
+  // Native Web Audio Synthesizer (No external mp3 needed)
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  function playSound(type) {
+    try {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (type === 'correct') {
+        osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.2); // A5
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+      } else if (type === 'wrong') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(110, audioCtx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.28);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.28);
+      }
+    } catch(e) {}
+  }
+
+  // 3D Parallax Tilt Logic (Desktop Mouse + Mobile Gyro/Drag Friendly)
+  const card = document.getElementById('card3D');
+  window.addEventListener('mousemove', (e) => {
+    if (window.innerWidth < 768) return; // Smooth on mobile
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - (rect.left + rect.width / 2);
+    const y = e.clientY - (rect.top + rect.height / 2);
+    const rotateY = (x / (rect.width / 2)) * 8;
+    const rotateX = -(y / (rect.height / 2)) * 8;
+    card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+  });
+
+  // Floating Particle Canvas
+  const canvas = document.getElementById('particleCanvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  for (let i = 0; i < 40; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 2 + 1,
+      dx: (Math.random() - 0.5) * 0.4,
+      dy: (Math.random() - 0.5) * 0.4,
+      alpha: Math.random() * 0.5 + 0.2
+    });
+  }
+
+  function drawParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(0, 242, 254, ${p.alpha})`;
+      ctx.fill();
+      p.x += p.dx;
+      p.y += p.dy;
+      if (p.x < 0) p.x = canvas.width;
+      if (p.x > canvas.width) p.x = 0;
+      if (p.y < 0) p.y = canvas.height;
+      if (p.y > canvas.height) p.y = 0;
+    });
+    requestAnimationFrame(drawParticles);
+  }
+  drawParticles();
+
+  // Quiz Workflow Functions
+  function startChallenge() {
+    const name = document.getElementById('playerName').value.trim();
+    const email = document.getElementById('playerEmail').value.trim();
+
+    if (!name || !email || !email.includes('@')) {
+      alert("Please enter a valid Name and Email to start.");
+      return;
+    }
+
+    studentData.name = name;
+    studentData.email = email;
+
+    document.getElementById('startScreen').style.display = 'none';
+    document.getElementById('quizScreen').style.display = 'block';
+
+    renderQuestion();
+  }
+
+  function renderQuestion() {
+    clearInterval(timerInterval);
+    timeLeft = 15;
+    document.getElementById('timerBar').style.width = '100%';
+    document.getElementById('explanationBox').style.display = 'none';
+    document.getElementById('nextBtn').style.display = 'none';
+
+    const qObj = quizData[currentIdx];
+    document.getElementById('qIndex').innerText = currentIdx + 1;
+    document.getElementById('questionPrompt').innerText = qObj.q;
+
+    const optBox = document.getElementById('optionsBox');
+    optBox.innerHTML = '';
+    const letters = ['A', 'B', 'C', 'D'];
+
+    qObj.options.forEach((optText, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn';
+      btn.innerHTML = `<span class="badge">${letters[i]}</span><span>${optText}</span>`;
+      btn.onclick = () => selectOption(i);
+      optBox.appendChild(btn);
+    });
+
+    startCountdown();
+  }
+
+  function startCountdown() {
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      const perc = (timeLeft / 15) * 100;
+      document.getElementById('timerBar').style.width = `${perc}%`;
+
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        handleTimeout();
+      }
+    }, 1000);
+  }
+
+  function selectOption(selectedIdx) {
+    clearInterval(timerInterval);
+    const qObj = quizData[currentIdx];
+    const buttons = document.querySelectorAll('.option-btn');
+    buttons.forEach(b => b.disabled = true);
+
+    const isCorrect = (selectedIdx === qObj.correct);
+
+    let roundPoints = 0;
+    if (isCorrect) {
+      playSound('correct');
+      correctCount++;
+      streak++;
+      if (streak > maxStreak) maxStreak = streak;
+
+      // Multipliers: Speed decay bonus + Streak multiplier
+      const streakMultiplier = 1 + (streak * 0.2);
+      const speedMultiplier = 1 + (timeLeft / 15) * 0.5;
+      roundPoints = Math.round(1000 * streakMultiplier * speedMultiplier);
+      score += roundPoints;
+
+      buttons[selectedIdx].classList.add('correct');
+    } else {
+      playSound('wrong');
+      streak = 0;
+      if (selectedIdx !== null) buttons[selectedIdx].classList.add('wrong');
+      buttons[qObj.correct].classList.add('correct');
+    }
+
+    // Save detailed response
+    answerLogs.push({
+      round: currentIdx + 1,
+      question: qObj.q,
+      selected: selectedIdx !== null ? qObj.options[selectedIdx] : "TIMEOUT",
+      correct: isCorrect,
+      timeRemainingSec: timeLeft
+    });
+
+    // Update HUD
+    document.getElementById('scoreBadge').innerText = `SCORE: ${score.toLocaleString()}`;
+    document.getElementById('streakBadge').innerText = `🔥 STREAK: ${streak}`;
+
+    // Show Viewer Explanation
+    const exp = document.getElementById('explanationBox');
+    exp.innerHTML = `<strong>${isCorrect ? '✅ Excellent! (+' + roundPoints + ' pts)' : '❌ Incorrect!'}</strong><br>${qObj.expl}`;
+    exp.style.display = 'block';
+
+    document.getElementById('nextBtn').style.display = 'block';
+  }
+
+  function handleTimeout() {
+    selectOption(null);
+  }
+
+  function nextQuestion() {
+    currentIdx++;
+    if (currentIdx < quizData.length) {
+      renderQuestion();
+    } else {
+      finalizeAndSync();
+    }
+  }
+
+  async function finalizeAndSync() {
+    document.getElementById('quizScreen').style.display = 'none';
+    document.getElementById('resultsScreen').style.display = 'block';
+
+    const accuracy = `${Math.round((correctCount / quizData.length) * 100)}%`;
+    document.getElementById('resScore').innerText = score.toLocaleString();
+    document.getElementById('resAccuracy').innerText = accuracy;
+    document.getElementById('resStreak').innerText = maxStreak;
+
+    const syncLabel = document.getElementById('resSync');
+    syncLabel.innerText = "Syncing to Cloud...";
+    syncLabel.style.color = "var(--neon-cyan)";
+
+    // Automatic Submission payload to Formspree
+    const payload = {
+      student_name: studentData.name,
+      student_email: studentData.email,
+      total_score: score,
+      accuracy: accuracy,
+      highest_streak: maxStreak,
+      quiz_breakdown: JSON.stringify(answerLogs, null, 2)
+    };
+
+    try {
+      const resp = await fetch(FORMSPREE_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (resp.ok) {
+        syncLabel.innerText = "Saved to Cloud! ✔";
+        syncLabel.style.color = "#34d399";
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      syncLabel.innerText = "Sync Failed (Saved locally)";
+      syncLabel.style.color = "var(--neon-red)";
+    }
+  }
+</script>
+
+</body>
+</html>
